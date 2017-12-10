@@ -1,6 +1,8 @@
-
-vin = sc.textFile("/data/bitcoin/vin.csv")
-vout = sc.textFile("/data/bitcoin/vout.csv")
+import functions as f
+from pyspark import SparkContext
+sc = SparkContext()
+vin = sc.textFile("vin.csv")
+vout = sc.textFile("vout.csv")
 # WANT TO FIND SENDER IN TRANSACTION (FROM) to TRANSACTION (TO)
 
  # key(line 7) is (tx_hash (transaction from), vout (id of out in previous transation))
@@ -26,19 +28,26 @@ result = result.filter(lambda (key, value): len(value) == 4)
 # key: transactionID
 # value: [walletID] - list because of me for loop later
 wallets = result.map(lambda (key, value): (value[1], [value[3]]))
+wallets = wallets.reduceByKey(lambda x, y: x + y)
+# making sure wallets has only one value
+wallets = wallets.map(lambda (key, value): (key, [value[0]]))
 
 # key: (transactionID) (from)
 # value: [(n, txid(to), value, reciever)] this is a list of the 4-tuple for each out (n)
-result = result.reduceByKey(lambda x, y: [x] + [y])
+result2 = result.reduceByKey(lambda x, y: [x] + [y])
+
+
 
 # key is transactionID
 # Value is list of 4-tuple and [WalletID]
-result = result.union(wallets)
-result = result.reduceByKey(lambda x, y: [x] + [y])
+result3 = result2.union(wallets)
+result3 = result3.reduceByKey(lambda x, y: [x] + [y])
+# drop item if there are no transactions for the walletID
+result3 = result3.filter(lambda (key, value): len(value) != 1)
+result3 = result3.filter(lambda x: f.filter(x))
 
 # does not work right now. Trying to remove walletID from value and put it in key
-result = result.map(lambda (key, value): ((key, [value.pop()[0] for thing in value if len(thing) == 1][0]), value))
+result4 = result3.map(lambda x: f.coolStory(x))
+result4.saveAsTextFile("pleaseHelp")
 
 # [res2.pop()[0] for thing in res2 if len(thing) == 1][0] - ignore
-
-
