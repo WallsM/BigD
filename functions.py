@@ -13,6 +13,6 @@ def filter(keyValue):
     
     # drop item if it does not contain WalletID
     for item in keyValue[1]:
-        if len(keyValue[1]) == 1:
+        if len(item) == 1:
             return True
     return False
